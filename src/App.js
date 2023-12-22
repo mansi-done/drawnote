@@ -7,7 +7,7 @@ import { HighlightOutlined, DragOutlined, PlusOutlined, MinusOutlined, FontColor
 import useFabricZoom from './hooks/canvasZoom';
 import useText from './hooks/canvasText';
 import useHandleKeyDown from './utils/keymapper';
-import { Eraser, Sun,Moon } from './assets';
+import { Eraser, Sun, Moon } from './assets';
 
 const getDrawCursor = () => {
   var brushSize = 10;
@@ -150,16 +150,22 @@ function addGridLines(canvas) {
 function App() {
   const canvasRef = null;
   const canvasParentRef = useRef(null);
-
-  const [currentTool, setCurrentTool] = useState("mooooo")
-  const [isPenOn, setIsPenOn] = useState(false)
-  const [isEraserOn, setIsEraserOn] = useState(false)
+  const [currentTool, setCurrentTool] = useState("")
   const [canvas, setCanvas] = useState(null)
-  const [isLightMode, setIsLightMode] = useState(false)
+  const [isLightMode, setIsLightMode] = useState(true)
   const [brushColor, setBrushColor] = useState("#B27CE6")
   const [brushSize, setBrushSize] = useState(5)
   const [currentZoom, setCurrentZoom] = useState(1)
   const [zoom] = useFabricZoom(canvas, currentTool, currentZoom, setCurrentZoom)
+  const [newText, setNewText] = useState(new fabric.Text(
+    "Welcome to Drawboard! Start by creating a new sketch or whiteboard", {
+    fontSize: 20,
+    left: 370,
+    top: 120,
+    fill:"#000000",
+    opacity: 0.5,
+    selectable:false
+  }))
   const [text] = useText(canvas, currentTool, setCurrentTool);
   const [key] = useHandleKeyDown(
     canvas,
@@ -212,7 +218,6 @@ function App() {
   useEffect(() => {
     if (!canvasParentRef) return;
     const canvas = createCanvas(canvasParentRef)
-
     fabric.Object.prototype.centeredRotation = true;
     fabric.Object.prototype.cornerStrokeColor = "#B27CE6";
     fabric.Object.prototype.cornerSize = 10;
@@ -224,10 +229,10 @@ function App() {
     fabric.Object.prototype.borderColor = "#B27CE6";
     fabric.Object.prototype.controls.mtr.withConnection = false;
     fabric.Object.prototype.controls.mtr.offsetY = -20;
+    canvas.add(newText).renderAll()
     setCanvas(canvas)
     addGridLines(canvas)
   }, [canvasParentRef])
-
 
   useEffect(() => {
     if (!canvas) return;
@@ -297,6 +302,10 @@ function App() {
   useEffect(() => {
     if (!canvas) return;
     const handleObjectMouseDown = (e) => {
+      if(newText) {
+        canvas.remove(newText).renderAll();
+        setNewText(null)
+      }
       if (!canvas) return;
       if (currentTool == "eraser") {
         const target = e.target;
@@ -341,7 +350,7 @@ function App() {
   //121212 for dark
   return (
     <div className="App">
-      <div className="canvas-wrapper" style={{ backgroundColor:isLightMode ?  "#fcfcfc" :"#121212", height: "100%", width: "100%" }} ref={canvasParentRef}>
+      <div className="canvas-wrapper" style={{ backgroundColor: isLightMode ? "#fcfcfc" : "#121212", height: "100%", width: "100%" }} ref={canvasParentRef}>
         <canvas id="canvas" />
       </div>
       <div className="menu">
@@ -361,8 +370,8 @@ function App() {
           checkedChildren={<Sun />}
           unCheckedChildren={<Moon />}
           value={isLightMode}
-          onChange={(checked)=>setIsLightMode(checked)}
-          style={{boxShadow:"#ffffff 0px 5px 10px"}}
+          onChange={(checked) => setIsLightMode(checked)}
+          style={{ boxShadow: "#ffffff 0px 5px 10px" }}
         />
       </div>
       {
