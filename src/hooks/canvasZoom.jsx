@@ -114,7 +114,7 @@ const useFabricZoom = (canvas, currentTool, currentZoom, setCurrentZoom) => {
         // console.log("pinch")
         var delta = opt.e.deltaY;
         var zoom = canvas.getZoom();
-        zoom *= 0.999 ** delta;
+        zoom *= 0.960 ** delta;
         // canvas.setZoom(zoom);
         if (zoom > 200) zoom = 200;
         if (zoom < 0.20) zoom = 0.20;

@@ -3,11 +3,22 @@ import './App.css';
 import { fabric } from 'fabric';
 import { Button, Tooltip, FloatButton, Slider, ColorPicker, Switch } from 'antd';
 import { HighlightOutlined, DragOutlined, PlusOutlined, MinusOutlined, FontColorsOutlined } from '@ant-design/icons';
-
+import { PDFWorker } from 'pdfjs-dist';
 import useFabricZoom from './hooks/canvasZoom';
 import useText from './hooks/canvasText';
 import useHandleKeyDown from './utils/keymapper';
 import { Eraser, Sun, Moon } from './assets';
+
+import { pdfjs } from 'react-pdf';
+import { Document, Page, Viewer } from 'react-pdf';
+
+import html2canvas from 'html2canvas';
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString();
+
 
 const getDrawCursor = () => {
   var brushSize = 10;
@@ -48,9 +59,7 @@ const getPenCursor = () => {
   return `data:image/svg+xml;base64,${window.btoa(circle)}`;
 };
 
-
-
-const createCanvas = (canvasParentRef) => {
+const createCanvas = (canvasParentRef, localStorageCanvas, newText) => {
   const initialHeight = canvasParentRef.current.offsetHeight;
   const initialwidth = canvasParentRef.current.offsetWidth;
 
@@ -61,6 +70,14 @@ const createCanvas = (canvasParentRef) => {
   });
   if (typeof newCanvas.historyInit === "function") {
     newCanvas.historyInit();
+  }
+  if (localStorageCanvas) {
+    newCanvas.loadFromJSON(localStorageCanvas)
+  }
+  else {
+    newText.left = (newCanvas.width / 2) - (newText.width / 2);
+    newText.top = 200
+    newCanvas.add(newText).renderAll()
   }
   return newCanvas;
 };
@@ -89,8 +106,7 @@ const tools = [
     name: "Text Tool"
   }
 ]
-
-function addGridLines(canvas) {
+function addGridLines(canvas, setGroup) {
   if (!canvas) return;
 
   var gridSize = 40; // Adjust the size of the grid as needed
@@ -138,33 +154,91 @@ function addGridLines(canvas) {
   }
 
 
-  // Add the grid lines to the canvas
-  canvas.add(...gridLinesHor);
-  canvas.add(...gridLinesVer);
+  var group = new fabric.Group([...gridLinesHor, ...gridLinesVer])
+  setGroup(group)
 
-  canvas.gridLinesHor = gridLinesHor;
-  canvas.gridLinesVer = gridLinesVer;
+  // // Add the grid lines to the canvas
+  // canvas.add(...gridLinesHor);
+  // canvas.add(...gridLinesVer);
 
+  // canvas.gridLinesHor = gridLinesHor;
+  // canvas.gridLinesVer = gridLinesVer;
 }
+// function addGridLines(canvas, setGroup) {
+//   if (!canvas) return;
+//   var gridSize = 40;
+//   var gridLines = [];
+//   var gridLinesHor = []
+//   var gridLinesVer = []
+//   if (canvas.width && canvas.height) {
+//     const width = canvas.width;
+//     const height = canvas.width*2;
+//     // Add vertical lines
+//     for (var i = -1000; i < width+1; i += gridSize) {
+//       var line = new fabric.Line([i, 0, i, height], {
+//         stroke: '#828282',
+//         strokeWidth: 0.5,
+//         selectable: false,
+//         hoverCursor: 'default',
+//         objectCaching: false,
+//         lockMovementX: true,
+//         lockMovementY: true,
+//         lockRotation: true,
+//         lockScalingFlip: true,
+//         name: "gridLine"
+//       });
+//       gridLinesHor.push(line);
+//     }
+
+//     // Add horizontal lines
+//     for (var j = -1000; j < height; j += gridSize) {
+//       var line = new fabric.Line([0, j, width, j], {
+//         stroke: '#828282',
+//         strokeWidth: 0.5,
+//         selectable: false,
+//         hoverCursor: 'default',
+//         objectCaching: false,
+//         lockMovementX: true,
+//         lockMovementY: true,
+//         lockRotation: true,
+//         lockScalingFlip: true,
+//         name: "gridLine"
+//       });
+//       gridLinesVer.push(line);
+//     }
+//   }
+//   var group = new fabric.Group([...gridLinesHor, ...gridLinesVer])
+//   setGroup(group)
+// }
 
 function App() {
   const canvasRef = null;
   const canvasParentRef = useRef(null);
+  const [localStorageCanvas, setLocalStorageCanvas] = useState(localStorage.getItem("drawboard") ? localStorage.getItem("drawboard") : null)
+  const [localStorageState, setLocalStorageState] = useState(localStorage.getItem("drawboard-state") ? localStorage.getItem("drawboard-state") : {
+    brushSize: 3,
+    brushColor: "#b27ce6",
+    currentZoom: 1,
+    isLightMode: false,
+  })
+  const pdfUrl = "../src/assets/Here goes nothingggggg.pdf"
   const [currentTool, setCurrentTool] = useState("")
   const [canvas, setCanvas] = useState(null)
-  const [isLightMode, setIsLightMode] = useState(true)
-  const [brushColor, setBrushColor] = useState("#B27CE6")
-  const [brushSize, setBrushSize] = useState(5)
-  const [currentZoom, setCurrentZoom] = useState(1)
+  const [group, setGroup] = useState(null)
+  const [isLightMode, setIsLightMode] = useState(localStorageState ? Boolean(localStorageState.isLightMode) : false)
+  const [brushColor, setBrushColor] = useState(localStorageState ? localStorageState.brushColor : "#b27ce6")
+  const [brushSize, setBrushSize] = useState(localStorageState ? Number(localStorageState.brushSize) : 3)
+  const [currentZoom, setCurrentZoom] = useState(localStorageState ? Number(localStorageState.currentZoom) : 1)
   const [zoom] = useFabricZoom(canvas, currentTool, currentZoom, setCurrentZoom)
   const [newText, setNewText] = useState(new fabric.Text(
     "Welcome to Drawboard! Start by creating a new sketch or whiteboard", {
-    fontSize: 20,
-    left: 370,
-    top: 120,
-    fill:"#000000",
+    fontSize: 30,
+    left: 200,
+    top: 200,
+    fill: "#B27CE6",
+    fontFamily: "Playfair Display",
     opacity: 0.5,
-    selectable:false
+    selectable: false
   }))
   const [text] = useText(canvas, currentTool, setCurrentTool);
   const [key] = useHandleKeyDown(
@@ -173,8 +247,6 @@ function App() {
     currentZoom,
     setCurrentZoom
   );
-
-
   const handleSetZoom = (positive) => {
     var newZoom;
     if (positive) newZoom = zoom * 1.2;
@@ -189,6 +261,26 @@ function App() {
     }
     setCurrentZoom(newZoom)
   }
+
+  useEffect(() => {
+    if (!canvas) return;
+    canvas.setBackgroundImage(group)
+    canvas.renderAll()
+  }, [group])
+
+
+  useEffect(() => {
+    if (!canvas) return;
+    const newLocalStorageState = localStorageState
+    newLocalStorageState.currentZoom = zoom;
+    setLocalStorageCanvas(newLocalStorageState);
+  }, [zoom])
+
+
+  // useEffect(()=>{
+  //   if(!canvas) return;
+  //   window.localStorage.setItem("drawboard-state",JSON.stringify(localStorageState))
+  // },[localStorageState])
 
 
 
@@ -214,10 +306,223 @@ function App() {
   }, []);
 
 
+  const handlePaste = (event) => {
+    const items = (event.clipboardData || event.originalEvent.clipboardData)
+      .items;
+    for (const item of items) {
+      if (item.type.indexOf("image") !== -1) {
+        const blob = item.getAsFile();
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+          if (event.target) {
+            const imageUrl = event.target.result;
+            if (typeof imageUrl === "string") {
+              fabric.Image.fromURL(imageUrl, function (img) {
+                if (canvas) {
+                  canvas?.add(img);
+                  const canvasWidth = canvas.width;
+                  const canvasHeight = canvas.height;
+
+                  if (img.width && img.height && canvasWidth && canvasHeight) {
+                    const imageWidth = img.width * zoom;
+                    const imageHeight = img.height * zoom;
+
+                    const offsetX = (canvasWidth - img.width) / 2;
+                    const offsetY = (canvasHeight - img.height) / 2;
+                    img.set({
+                      left: offsetX,
+                      top: offsetY,
+                    });
+                    img.set({ selectable: true });
+
+                    // Bring the image to the front
+                    canvas.bringToFront(img);
+
+                    // Enable canvas selection
+                    canvas.setActiveObject(img);
+                    canvas.selection = true;
+                    canvas?.renderAll();
+                  }
+                }
+              });
+            }
+          }
+        };
+
+        reader.readAsDataURL(blob);
+      }
+    }
+  };
+
+  var BASE64_MARKER = ';base64,';
+
+  function convertDataURIToBinary(dataURI) {
+    var base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+    var base64 = dataURI.substring(base64Index);
+    var raw = window.atob(base64);
+    var rawLength = raw.length;
+    var array = new Uint8Array(new ArrayBuffer(rawLength));
+
+    for (var i = 0; i < rawLength; i++) {
+      array[i] = raw.charCodeAt(i);
+    }
+    return array;
+  }
+
+  const PdfToImg = async (isUrl, url) => {
+    const canvas1 = document.createElement('canvas');
+    var pdfDocument;
+    if (isUrl) {
+      pdfDocument = await pdfjs.getDocument({ url: url }).promise;
+    }
+    else {
+      var pdfAsArray = convertDataURIToBinary(url);
+      pdfDocument = await pdfjs.getDocument(pdfAsArray).promise;
+    }
+
+    const pages = pdfDocument.numPages;
+    var posX = 0;
+    var posY = 0;
+
+    for (let i = 1; i <= pages; i++) {
+      const pdfPage = await pdfDocument.getPage(i);
+      const viewport = pdfPage.getViewport({ scale: 1.5 });
+      canvas1.width = viewport.width;
+      canvas1.height = viewport.height;
+      const canvasContext = canvas1.getContext('2d');
+      const renderTask = pdfPage.render({
+        canvasContext,
+        viewport,
+      });
+      await renderTask.promise;
+      const imageDataURL = canvas1.toDataURL('image/png');
+      posX = 0 - viewport.width
+      fabric.Image.fromURL(imageDataURL, function (img) {
+        if (canvas) {
+          canvas?.add(img);
+          img.set({
+            left: posX,
+            top: posY,
+          });
+          img.name = "pdfimage"
+        }
+        posY += viewport.height + 2;
+      });
+
+    }
+
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const file = e.dataTransfer.files[0];
+    console.log("Drop Event");
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target.result;
+        if (imageUrl.startsWith("data:image/")) {
+          console.log("reached here")
+          fabric.Image.fromURL(imageUrl, function (img) {
+            if (canvas) {
+              canvas?.add(img);
+              const canvasWidth = canvas.width;
+              const canvasHeight = canvas.height;
+
+              if (img.width && img.height && canvasWidth && canvasHeight) {
+                const imageWidth = img.width * zoom;
+                const imageHeight = img.height * zoom;
+
+                const offsetX = (canvasWidth - img.width) / 2;
+                const offsetY = (canvasHeight - img.height) / 2;
+                img.set({
+                  left: offsetX,
+                  top: offsetY,
+
+                });
+                img.set({ selectable: true });
+
+                // Bring the image to the front
+                canvas.bringToFront(img);
+
+                // Enable canvas selection
+                canvas.selection = true;
+                canvas.setActiveObject(img);
+
+                canvas?.renderAll();
+              }
+            }
+          });
+        }
+        else {
+          PdfToImg(false, imageUrl)
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  useEffect(() => {
+    // Add event listener for paste events
+    document.addEventListener("paste", handlePaste);
+    document.addEventListener("drop", handleDrop);
+    return () => {
+      // Clean up event listener when the component unmounts
+      document.removeEventListener("paste", handlePaste);
+      document.removeEventListener("drop", handleDrop);
+    };
+  }, [canvas]);
+
+
+  // useEffect(() => {
+  //   const renderPage = async () => {
+  //     if (!canvas) return;
+  //     try {
+  //       pdfjs.getDocument("codd.pdf").promise.then(async (res) => {
+  //         const page = await res.getPage(1);
+  //         const viewport = page.getViewport({ scale: 1.5 });
+  //         const context = canvas.getContext('2d');
+  //         canvas.width = viewport.width;
+  //         canvas.height = viewport.height;
+  //         var renderContext = {
+  //           canvasContext: context,
+  //           viewport: viewport
+  //         };
+
+  //          page.render(renderContext).promise.then(function () {
+
+  //           var bg = canvas.toDataURL("image/png");
+
+  //           fabric.Image.fromURL(bg, function (img) {
+  //             img.scaleToHeight(1123);
+  //             canvas.setHeight(1123);
+  //             canvas.setWidth(1588);
+  //             canvas.setBackgroundImage(img);
+  //           });
+  //           canvas.renderAll();
+  //         });
+
+
+
+  //       })
+  //     } catch (error) {
+  //       console.error('Error rendering PDF:', error);
+  //     }
+  //   }
+  //   renderPage()
+  // }, [canvas])
+
+
 
   useEffect(() => {
     if (!canvasParentRef) return;
-    const canvas = createCanvas(canvasParentRef)
+    const canvas = createCanvas(canvasParentRef, localStorageCanvas, newText)
+
+
+    addGridLines(canvas, setGroup)
     fabric.Object.prototype.centeredRotation = true;
     fabric.Object.prototype.cornerStrokeColor = "#B27CE6";
     fabric.Object.prototype.cornerSize = 10;
@@ -229,10 +534,11 @@ function App() {
     fabric.Object.prototype.borderColor = "#B27CE6";
     fabric.Object.prototype.controls.mtr.withConnection = false;
     fabric.Object.prototype.controls.mtr.offsetY = -20;
-    canvas.add(newText).renderAll()
     setCanvas(canvas)
-    addGridLines(canvas)
   }, [canvasParentRef])
+
+
+
 
   useEffect(() => {
     if (!canvas) return;
@@ -273,6 +579,7 @@ function App() {
 
 
 
+
   useEffect(() => {
     if (!canvas) return;
     console.log(currentTool)
@@ -287,7 +594,8 @@ function App() {
     if (currentTool == "eraser") {
       var size = 20
       canvas.selectable = false;
-      changeObjects(`url(${getDrawCursor()}) ${size / 2} ${size / 2}, crosshair`, false)
+      // changeObjects(`url(${getDrawCursor()}) ${size / 2} ${size / 2}, crosshair`, false)
+      changeObjects(`pointer`, false)
 
     }
     else {
@@ -302,7 +610,7 @@ function App() {
   useEffect(() => {
     if (!canvas) return;
     const handleObjectMouseDown = (e) => {
-      if(newText) {
+      if (newText) {
         canvas.remove(newText).renderAll();
         setNewText(null)
       }
@@ -313,7 +621,6 @@ function App() {
         canvas.renderAll()
       }
     }
-
     const handleMouseOver = (e) => {
       if (currentTool == "eraser") {
         const target = e.target;
@@ -321,7 +628,6 @@ function App() {
         canvas.renderAll()
       }
     }
-
     const handleMouseOut = (e) => {
       if (currentTool == "eraser") {
         const target = e.target;
@@ -331,26 +637,36 @@ function App() {
 
     }
 
+    const handleObjectChange = (e) => {
+      if (!canvas) return;
+      try {
+        localStorage.setItem("drawboard", JSON.stringify(canvas));
+      }
+      catch (e) {
+        console.log("Local Storage is full, Please empty data");
+      }
+    }
+
     canvas.on("mouse:down", handleObjectMouseDown);
     canvas.on("mouse:over", handleMouseOver);
     canvas.on("mouse:out", handleMouseOut);
-
+    canvas.on("object:modified", handleObjectChange);
+    canvas.on('object:added', handleObjectChange);
+    canvas.on('object:removed', handleObjectChange);
 
     return () => {
       canvas.off("mouse:down", handleObjectMouseDown);
       canvas.off("mouse:over", handleMouseOver);
-      canvas.on("mouse:out", handleMouseOut);
-
+      canvas.off("mouse:out", handleMouseOut);
+      canvas.off("object:modified", handleObjectChange);
+      canvas.off('object:added', handleObjectChange);
+      canvas.off('object:removed', handleObjectChange);
     }
   }, [canvas, currentTool, brushSize, brushColor])
-
-
-
-
   //121212 for dark
   return (
     <div className="App">
-      <div className="canvas-wrapper" style={{ backgroundColor: isLightMode ? "#fcfcfc" : "#121212", height: "100%", width: "100%" }} ref={canvasParentRef}>
+      <div className="canvas-wrapper" style={{ backgroundColor: isLightMode ? "#fcfcfc" : "#121212", height: "100%", width: "100%", display: "flex" }} ref={canvasParentRef}>
         <canvas id="canvas" />
       </div>
       <div className="menu">
@@ -364,6 +680,12 @@ function App() {
           })
         }
       </div>
+      {/* 
+      <div className="pdf-sc">
+        <Document file={"codd.pdf"}>
+          <Page pageNumber={1}/>
+        </Document>
+      </div> */}
 
       <div className="dark-mode-toggle">
         <Switch
@@ -390,7 +712,7 @@ function App() {
         <FloatButton style={{ boxShadow: "rgba(0, 0, 0, 0.24) 0px 3px 8px" }} type='primary' description={`${zoom.toFixed(2)} `} />
         <FloatButton style={{ boxShadow: "rgba(0, 0, 0, 0.24) 0px 3px 8px" }} onClick={() => handleSetZoom(false)} type='primary' icon={<MinusOutlined />} />
       </FloatButton.Group>
-    </div>
+    </div >
 
   );
 }

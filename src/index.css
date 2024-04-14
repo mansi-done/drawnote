@@ -1,4 +1,4 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Playfair+Display&display=swap');
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -7,8 +7,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
-  max-width: 100vw;
-  max-height: 100vh;
+  /* max-width: 100vw;
+  max-height: 100vh; */
 }
 
 code {

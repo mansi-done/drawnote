@@ -41,10 +41,16 @@
 
 }
 
+.pdf-sc{
+  position: fixed;
+  top:1vh;
+  left: 1vh;
+}
+
 .pen-menu {
   position: fixed;
-  top: 15vh;
-  left: calc(30vw + 150px);
+  top: 10vh;
+  left: 5vw;
   height: 100px;
   width: 200px;
   background-color: #a84affeb;
