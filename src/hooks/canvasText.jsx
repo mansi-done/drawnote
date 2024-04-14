@@ -56,6 +56,7 @@ const useText = (canvas,currentTool, setCurrentTool) => {
                 fontWeight:'normal',
                 lineHeight:1,
                 charSpacing:1,
+                textBackgroundColor:"white",
                 // borderColor:"#B27CE6"
                 editingBorderColor :"#b27ce6"
             });

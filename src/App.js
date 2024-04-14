@@ -231,7 +231,7 @@ function App() {
   const [currentZoom, setCurrentZoom] = useState(localStorageState ? Number(localStorageState.currentZoom) : 1)
   const [zoom] = useFabricZoom(canvas, currentTool, currentZoom, setCurrentZoom)
   const [newText, setNewText] = useState(new fabric.Text(
-    "Welcome to Drawboard! Start by creating a new sketch or whiteboard", {
+    "Welcome to Drawnote! Start by creating a new note or sketch", {
     fontSize: 30,
     left: 200,
     top: 200,
