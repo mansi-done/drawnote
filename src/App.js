@@ -404,7 +404,7 @@ function App() {
         if (canvas) {
           canvas?.add(img);
           img.set({
-            left: posX,
+            left: posX + img.width,
             top: posY,
           });
           img.name = "pdfimage"
