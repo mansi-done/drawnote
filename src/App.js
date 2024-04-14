@@ -231,13 +231,13 @@ function App() {
   const [currentZoom, setCurrentZoom] = useState(localStorageState ? Number(localStorageState.currentZoom) : 1)
   const [zoom] = useFabricZoom(canvas, currentTool, currentZoom, setCurrentZoom)
   const [newText, setNewText] = useState(new fabric.Text(
-    "Welcome to Drawnote! Start by creating a new note or sketch, You can drop your images or PDFs to start annotating them.", {
-    fontSize: 30,
+    "Welcome to Drawnote! Start by creating a new note or sketch, You can drop your images or PDFs to start annotating them",{
+    fontSize: 20,
     left: 200,
     top: 200,
     fill: "#B27CE6",
     fontFamily: "Playfair Display",
-    opacity: 0.5,
+    opacity: 0.7,
     selectable: false
   }))
   const [text] = useText(canvas, currentTool, setCurrentTool);
